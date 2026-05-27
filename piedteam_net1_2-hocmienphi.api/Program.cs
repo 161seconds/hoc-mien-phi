@@ -44,10 +44,12 @@ app.Run();
         //nhan va tra request, response
     // config he thong
     // tang api nay gọi đến service
+
 //tang service
     // chiu trach nhiem xu li nghiep vu
     // tuong tac voi repo de lay du lieu
-    //gọi den repository
+    // gọi den repository
+
 //tang repository
     // chiu trach nhiem tuong tac voi DB
     // cau hinh nhung thu lien quan den DB
@@ -59,13 +61,13 @@ app.Run();
     // tang API lúc này goi xuong tang Service có cái hàm là
         // xu lí login: LoginHandler(email, password)
         // luc nay ham login trong Service se chay như sau
-            //ktra email | nguoi dung co ton tai trong db kh
+            // ktra email | nguoi dung co ton tai trong db kh
             // nguoi dung nay co bị Ban kh
             // neu có lỗi thì tra ve loi
             // neu kh co loi thì tra ve token dang nhap
     // tang Service luc nay goi xuong tang Repo co cái hàm là
         // GetUserByEmail(email)
-        //hàm luc nay sẽ chạy câu lệnh SQL
+        // hàm luc nay sẽ chạy câu lệnh SQL
             // lay thong tin nguoi dung ra khoi db
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
