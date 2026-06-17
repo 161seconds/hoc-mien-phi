@@ -7,4 +7,6 @@ public class Request
         public string CategoryName { get; set; }
         public Guid? ParentId { get; set; }
     }
+
+    public class UpdateCategoryRequest : CreateCategoryRequest;
 }
