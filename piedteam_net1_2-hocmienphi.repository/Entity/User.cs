@@ -14,6 +14,6 @@ public class User : BaseEntity<Guid>
     public string Role { get; set; }
     public Mentor? Mentor { get; set; }
     
-    public ICollection<ApplyRequest> Requests {get; set;}
+    public ICollection<ApplyRequest> ApplyRequests {get; set;}
     public ICollection<Booking> Bookings {get; set;}
 }

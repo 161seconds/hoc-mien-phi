@@ -5,15 +5,14 @@ namespace piedteam_net1_2_hocmienphi.repository;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<User>  Users { get; set; }
-    public DbSet<Category>  Categories { get; set; }
-    public DbSet<Mentor>  Mentors { get; set; }
-    public DbSet<MentorCategory>  MentorCategories { get; set; }
-    public DbSet<ApplyRequest>  ApplyRequests { get; set; }
-    public DbSet<Booking>  Bookings { get; set; }
-    public DbSet<MentorFreeTime>  MentorFreeTimes { get; set; }
-    public DbSet<ApplyRequestCategory>  ApplyRequestCategories { get; set; }
-    
+    public DbSet<User> Users { get; set; }
+    public DbSet<Category> Categories { get; set; }
+    public DbSet<Mentor> Mentors { get; set; }
+    public DbSet<MentorCategory> MentorCategories { get; set; }
+    public DbSet<ApplyRequest> ApplyRequests { get; set; }
+    public DbSet<Booking> Bookings { get; set; }
+    public DbSet<MentorFreeTime> MentorFreeTimes { get; set; }
+    public DbSet<ApplyRequestCategory> ApplyRequestCategories { get; set; }
     public AppDbContext(DbContextOptions<AppDbContext> options) 
         : base(options) { }
 
@@ -47,7 +46,7 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder
-                .HasMany(u => u.Requests)
+                .HasMany(u => u.ApplyRequests)
                 .WithOne(r => r.User)
                 .HasForeignKey(r => r.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -105,15 +104,14 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Category>(builder =>
         {
             builder
-                .HasOne(c => c.Parent)
-                .WithMany(c => c.Children)
-                .HasForeignKey(c => c.ParentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder
                 .HasMany(c => c.MentorCategories)
                 .WithOne(mc => mc.Category)
                 .HasForeignKey(mc => mc.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder
+                .HasMany(u => u.ApplyRequestsCategories)
+                .WithOne(n => n.Category)
+                .HasForeignKey(u => u.CategoryId) 
                 .OnDelete(DeleteBehavior.Cascade);
         });
         

@@ -4,9 +4,9 @@ namespace piedteam_net1_2_hocmienphi.repository.Entity;
 
 public class Booking : BaseEntity<Guid>
 {
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-
+    public DateTimeOffset StartTime { get; set; }
+    public DateTimeOffset EndTime { get; set; }
+    // chưa xu li chenh lech múi gio
     public string OrganizationName { get; set; }
     public string CurrentPosition { get; set; }
 

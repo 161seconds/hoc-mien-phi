@@ -38,8 +38,8 @@ public class ApplyRequestController : ControllerBase
             // implement logic xử lí bên trong
             
     
-    [HttpGet("")]
-    public IActionResult GetAllApplyRequest(Request.CreateApplyRequestRequest requestBody)
+    [HttpPost("")]
+    public IActionResult CreateApplyRequest(Request.CreateApplyRequestRequest requestBody)
     {
         var request = new ApplyRequest()
         {
@@ -67,17 +67,16 @@ public class ApplyRequestController : ControllerBase
          */
         //làm sao để biến 1 List<Guid> thành 1 List<ApplyRequestCategory)
         // dùng SELECT để ánh xạ, x lúc này tượng trưng cho 1 cateId
-        var applyRequestCategory = requestBody.CategoryIds.Select
-        (x => new ApplyRequestCategory()
+        var applyRequestCategory = requestBody.CategoryIds
+            .Select(x => new ApplyRequestCategory()
         {
             Id = Guid.NewGuid(),
             ApplyRequestId = request.Id,
             CategoryId = x
         });
-        // add range là add nhìu
+        // add range là add nhìu dòng cùng lúc
         _dbContext.ApplyRequestCategories.AddRange(applyRequestCategory);
         _dbContext.SaveChanges();
-        
         return Ok();
     }
     
@@ -87,20 +86,20 @@ public class ApplyRequestController : ControllerBase
         return Ok();
     }
     
-    [HttpPost("{id}")]
-    public IActionResult CreateApplyRequest()
+    [HttpGet("")]
+    public IActionResult GetAllApplyRequest()
     {
         return Ok();
     }
     
     [HttpGet("{id}")] 
-    public IActionResult GetApplyRequestDetail()
+    public IActionResult GetApplyRequestDetail(Guid id)
     {
         return Ok();
     }
     
-    [HttpPost("{id}/reivew")]
-    public IActionResult ReviewApplyRequest()
+    [HttpPost("{id}/review")]
+    public IActionResult ReviewApplyRequest(Guid id)
     {
         return Ok();
     }

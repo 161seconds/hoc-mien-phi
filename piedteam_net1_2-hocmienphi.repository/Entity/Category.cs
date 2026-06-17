@@ -10,9 +10,10 @@ public class Category : BaseEntity<Guid>
     public Category? Parent { get; set; }
     
     public ICollection<Category> Children { get; set; }
+    
     public ICollection<Mentor> Mentors { get; set; }
     public ICollection<MentorCategory> MentorCategories { get; set; }
-    public ICollection<ApplyRequest> ApplyRequests { get; set; }
+    public ICollection<ApplyRequestCategory> ApplyRequestsCategories { get; set; }
     // nho khai bao ParentId va Parent,
     // ma EF se tu dong hieu rang
     // giua 2 truong nay co mqh voi nhau

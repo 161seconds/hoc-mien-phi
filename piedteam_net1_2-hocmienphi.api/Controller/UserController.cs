@@ -201,7 +201,7 @@ public class UserController : ControllerBase
         {
             return NotFound();
         }
-        return Ok();
+        return Ok(selectedUser2);
     }
     
     [HttpDelete("{id}")]
