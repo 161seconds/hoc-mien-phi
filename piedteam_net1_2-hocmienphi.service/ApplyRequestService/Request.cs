@@ -12,4 +12,12 @@ public class Request
             // thì họ cũng phải đề cập tới
             // những lĩnh vực mà họ có thể mentor
     }
+    
+    public class ReviewApplyRequestRequest
+    {
+        public bool IsApproved { get; set; }
+        public string? Reason { get; set; }
+        // neu IsApproved = true thi reason co the null
+        // neu IsApproved = false thi reason phai co gtri
+    }
 }

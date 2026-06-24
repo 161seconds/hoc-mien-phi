@@ -13,6 +13,5 @@ public class ApplyRequest : BaseEntity<Guid>
     public string? RejectReason { get; set; } // li do bi tu choi
     public Guid UserId { get; set; }
     public User User { get; set; }
-    
     public ICollection<ApplyRequestCategory> ApplyRequestsCategories { get; set; }
 }

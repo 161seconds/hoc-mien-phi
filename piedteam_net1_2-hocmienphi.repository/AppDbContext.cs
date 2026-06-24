@@ -156,4 +156,3 @@ public class AppDbContext : DbContext
 // di vao' dbContext khai bao
 // chay. migration de tao file migration(cac phien ban cua db)
 // upd db
-// 

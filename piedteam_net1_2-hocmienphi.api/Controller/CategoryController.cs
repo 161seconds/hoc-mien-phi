@@ -27,7 +27,7 @@ public class CategoryController : ControllerBase
         var selectedQuery = query
             .Select(x => new Response.GetAllParentCategoryResponse()
             {
-                Id = x.Id.ToString(),
+                Id = x.Id,
                 Name = x.Name
             }).ToList();
         // muc dich cua tao. GetAllParentCategoryResponse
