@@ -233,7 +233,8 @@ public class ApplyRequestController : ControllerBase
     public IActionResult ReviewApplyRequest(Guid id, Request.ReviewApplyRequestRequest requestBody)
     {
         var query = _dbContext.ApplyRequests.Where(x => x.IsDeleted == false);
-        query = query.Include(x => x.User);
+        query = query.Include(x => x.User)
+            .Include(x => x.ApplyRequestsCategories);
         // include
         query = query.Where(x => x.Id == id);  
         var applyRequest = query.FirstOrDefault();
@@ -250,6 +251,24 @@ public class ApplyRequestController : ControllerBase
             // auto join no chi hoat dong khi minh select thoi
             // con` o day neu ma muon .User thi minh phai su dung
                 // Include de join thu cong
+
+                var mentor = new Mentor()
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = applyRequest.UserId,
+                };
+                _dbContext.Mentors.Add(mentor);
+                _dbContext.SaveChanges();
+
+                var mentorCategories = applyRequest.ApplyRequestsCategories
+                    .Select(x => new MentorCategory()
+                    {
+                        Id = Guid.NewGuid(),
+                        MentorId = mentor.Id,
+                        CategoryId = x.CategoryId
+                    });
+                _dbContext.MentorCategories.AddRange(mentorCategories);
+                _dbContext.SaveChanges();
         }
         else
         {
@@ -262,6 +281,7 @@ public class ApplyRequestController : ControllerBase
         
         return Ok();
     }
+    
 }
 // btvn
 // viet tiep doan nay, tao moi Entity Mentor va Category cho mentor do

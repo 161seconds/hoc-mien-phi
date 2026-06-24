@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using piedteam_net1_2_hocmienphi.repository;
 using piedteam_net1_2_hocmienphi.repository.Entity;
 using piedteam_net1_2_hocmienphi.service.CategoryService;
+using piedteam_net1_2_hocmienphi.service.Utils.JWTService;
 using Request = piedteam_net1_2_hocmienphi.service.UserService.Request.Request;
 
 namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
@@ -13,10 +15,12 @@ namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
 public class UserController : ControllerBase
 {
     private readonly AppDbContext _dbContext;
-        
-    public UserController(AppDbContext dbContext)
+    private readonly JwtOptions _jwtOptions = new();
+    
+    public UserController(AppDbContext dbContext, IConfiguration configuration)
     {
         _dbContext = dbContext;
+        configuration.GetSection("JwtOptions").Bind(_jwtOptions);
     }
     
     //endpoint gọi tên khác là các api
@@ -112,9 +116,64 @@ public class UserController : ControllerBase
 
     // POST: /api/user/login
     [HttpPost("login")]
-    public IActionResult Login()
+    public IActionResult Login(string Email, string Password)
     {
-        return Ok("Login");
+        /*
+        // lấy tất cả User trong db
+        // theo ae tại sao phải login
+        // giới hạn quyền hạn đc gọi đến các resrc
+        // ví dụ: bạn phải là 1 user (đã đki hệ thống) thì bạn mới dc mua hàng
+        
+        // authentication và authorization
+        // authen: bạn có dc quyền vào hệ thống của tôi kh
+        // author: sau khi vào hệ thống của tôi rồi thì bạn có quyền gì
+            // ví dụ: admin thì có quyền tạo
+            // mentor thì có quyền tạo lịch rảnh
+        // vậy thì thông thường, chúng ta thường dùng kĩ thuật gì để xác thực và phân quyền
+        // thông thường mình hay sử dụng JWT để xác thực và phân quyền
+        
+        // JWT: Json Web Token: là 1 chuỗi token được mã hóa, truyền giữa client (FE) và server (BE)
+            // để xác thực và phân quyền cho người dùng
+        
+        // thông thường JWT có 3 phần
+        // header: chứa thông tin thuật toán mã hóa và loại token
+        // payload: chứa thông tin và quyền hạn của người dùng
+        // signature: chứa chữ ký số để xác thực token (sign(header + payload, secret)) 
+         */
+        /*
+         // đầu tiên tìm kiếm tài khoản với email đó xem có tồn tại hay kh
+        // nếu mà có thì mình mới tính tiếp đc
+            // tiếp tục so sánh với password người dùng nhập vào với password có trong db
+                // nếu mà trùng, ok bạn chính là chủ nhân của tài khoản, tôi sẽ trả ra JWT token cho bạn
+                // nếu mà kh trùng, thì m kh phải chủ nhân của tài khoản, cútttt
+        // nếu mà kh có tồn tại email thì cút
+         */
+        var query = _dbContext.Users.Where(x => x.IsDeleted == false);
+        query = query.Where(x => x.Email == Email);
+        var user = query.FirstOrDefault();
+        if (user == null)
+        {
+            return BadRequest();
+        }
+        if (user.Password != Password)
+        {
+            return BadRequest();
+        }
+        var testValue = _jwtOptions.SecretKey;
+        // claims đại diện cho các thông tin nằm trong payload của jwt
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.FirstName + " " + user.LastName),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role),
+            // quan trọng nhất: claim này sẽ giúp mình new Claim(ClaimTypes.Role, user.Role)
+            // sẽ giúp mình phân quyền
+            new Claim("UserId", user.Id.ToString()),
+            new Claim("Role", user.Role),
+        };
+        var token = JwtService.GenerateToken(claims, _jwtOptions);
+        return Ok(token);
     }
     
     [HttpPost("ForgotPassword")]
