@@ -45,7 +45,7 @@ public class MentorController : ControllerBase
                 CurrentPosition = x.CurrentPosition,
 
                 Categories = x.MentorCategories
-                    .Select(mc => new CategoryResponse.GetAllParentCategoryResponse()
+                    .Select(mc => new CategoryResponse.GetAllCategoryResponse()
                     {
                         Id = mc.Category.Id,
                         Name = mc.Category.Name

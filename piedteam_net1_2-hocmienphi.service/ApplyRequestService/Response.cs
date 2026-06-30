@@ -11,9 +11,7 @@ public class Response
         public string CvLink { get; set; }
         public ApplyRequestStatus Status { get; set; }
         public string? RejectReason { get; set; }
-        
         public UserService.Response.GetUserResponse User { get; set; }
-        public List<CategoryService.Response.GetAllParentCategoryResponse> Categories { get; set; }
+        public List<CategoryService.Response.GetAllCategoryResponse> Categories { get; set; }
     }
-    
 }

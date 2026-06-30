@@ -17,7 +17,5 @@ public class Request
     {
         public bool IsApproved { get; set; }
         public string? Reason { get; set; }
-        // neu IsApproved = true thi reason co the null
-        // neu IsApproved = false thi reason phai co gtri
     }
 }

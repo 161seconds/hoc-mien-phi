@@ -10,6 +10,6 @@ public class Response
         public string Email { get; set; }
         public string? OrganizationName { get; set; }
         public string? CurrentPosition { get; set; }
-        public List<CategoryService.Response.GetAllParentCategoryResponse> Categories { get; set; }
+        public List<CategoryService.Response.GetAllCategoryResponse> Categories { get; set; }
     }
 }

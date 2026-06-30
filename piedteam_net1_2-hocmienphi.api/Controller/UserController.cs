@@ -1,9 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using piedteam_net1_2_hocmienphi.repository;
 using piedteam_net1_2_hocmienphi.repository.Entity;
-using piedteam_net1_2_hocmienphi.service.CategoryService;
+using piedteam_net1_2_hocmienphi.service.UserService;
 using piedteam_net1_2_hocmienphi.service.Utils.JWTService;
 using Request = piedteam_net1_2_hocmienphi.service.UserService.Request.Request;
 
@@ -23,7 +22,8 @@ public class UserController : ControllerBase
         configuration.GetSection("JwtOptions").Bind(_jwtOptions);
     }
     
-    //endpoint gọi tên khác là các api
+    /*
+     //endpoint gọi tên khác là các api
     // POST /api/auth/login
     // POST /api/auth/register
     // GET /api/users/{id}
@@ -99,20 +99,31 @@ public class UserController : ControllerBase
 
     // POST: /api/user
     // body: dlieu đc truyền vào body, nên kh cần phải đặt tham số trong url
+     */
     
     // PUT: /api/user/{id}
     [HttpPut("{id}")]
-    public IActionResult UpdateUser(Guid id)
+    public IActionResult UpdateUser(Guid id, Request.UpdateUserRequest request)
     {
+        var query = _dbContext.Users.FirstOrDefault(x => x.IsDeleted == false && x.Id.Equals(id));
+        if (query == null)
+        {
+            return NotFound();
+        }
+        query.FirstName = request.FirstName;
+        query.LastName = request.LastName;
+        _dbContext.SaveChanges();
         return Ok($"Update user id: {id}");
     }
 
-    // DELETE: /api/user/{id}
+    /*
+     // DELETE: /api/user/{id}
     // [HttpDelete("{id}")]
     // public IActionResult DeleteUser(Guid id)
     // {
     //     return Ok($"Delete user id: {id}");
     // }
+     */
 
     // POST: /api/user/login
     [HttpPost("login")]
@@ -151,11 +162,7 @@ public class UserController : ControllerBase
         var query = _dbContext.Users.Where(x => x.IsDeleted == false);
         query = query.Where(x => x.Email == Email);
         var user = query.FirstOrDefault();
-        if (user == null)
-        {
-            return BadRequest();
-        }
-        if (user.Password != Password)
+        if (user == null || user.Password != Password)
         {
             return BadRequest();
         }
@@ -182,6 +189,7 @@ public class UserController : ControllerBase
         return Ok("ForgotPassword");
     }
     
+    /*
     // khai báo cho anh API sau
     // GET all category
         // có phân trang và cho phép search
@@ -198,6 +206,8 @@ public class UserController : ControllerBase
         // GetAllUser theo phan trang
         // Search, OrderBy
         // GetUserById
+     */
+    
     [HttpPost]
     public IActionResult CreateNewUser(Request.CreateUserRequest request)
     {
@@ -221,51 +231,45 @@ public class UserController : ControllerBase
     public IActionResult GetAllUser(string? searchTerm, int pageIndex = 1, int pageSize = 10)
     {
         var query = _dbContext.Users.AsQueryable();
-        query = query.Where(x => x.IsDeleted == false);
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            var sanitizerSearchTerm = searchTerm.Trim().ToLower();
-            query = query.Where(x =>
-                x.FirstName.ToLower().Contains(sanitizerSearchTerm) ||
-                x.LastName.ToLower().Contains(sanitizerSearchTerm) ||
-                x.Email.ToLower().Contains(sanitizerSearchTerm)
-            );
+            query = query.Where(x => x.FirstName.Contains(searchTerm) || 
+                                     x.LastName.Contains(searchTerm) || 
+                                     x.Email.Contains(searchTerm));
         }
-        query = query.OrderBy(x => x.Email);
-        var selectedUser = query
+        var selectedUser = query            
+            .OrderBy(x => x.Id)
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => new Request.GetAllUsers()
+            .Select(x => new Response.GetUserResponse()
             {
-                Id = x.Id,
                 FirstName = x.FirstName,
                 LastName = x.LastName,
-            })
-            .ToList();
+                Email = x.Email,
+            }).ToList();
         return Ok(selectedUser);
     }
 
     [HttpGet("{id}")]
     public IActionResult GetUserById(Guid id)
     {
-        var query = _dbContext.Users.AsQueryable();
-        query = query.Where(x => x.IsDeleted == false && x.Id.Equals(id));
-        //query = query.OrderBy(x => x.Id); chỉ lấy ra user có id duy nhất nên kh cần sắp xếp 
-        var selectedUser2 = query.Select(x => new Request.GetAllUsers()
-        {
-            Id = x.Id
-        }).FirstOrDefault();
-        
-        if (selectedUser2 == null)
+        var query = _dbContext.Users.FirstOrDefault(x => x.Id == id);
+        if (query == null)
         {
             return NotFound();
         }
-        return Ok(selectedUser2);
+        return Ok(query);
     }
     
     [HttpDelete("{id}")]
     public IActionResult DeleteUser(Guid id)
     {
+        var query = _dbContext.Users.FirstOrDefault(x => x.Id == id);
+        if (query == null)
+        {
+            return NotFound();
+        }
+        _dbContext.Users.Remove(query);
         return Ok($"Delete user id: {id}");
     }
 }

@@ -26,6 +26,12 @@ public class Request
         public string LastName { get; set; }
     }
 
+    public class UpdateUserRequest
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+    }
+
     public class GetUserByIdResponse
     {
         public Guid Id { get; set; }

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using piedteam_net1_2_hocmienphi.repository;
 using piedteam_net1_2_hocmienphi.repository.Entity;
 using piedteam_net1_2_hocmienphi.service.CategoryService;
+using piedteam_net1_2_hocmienphi.service.UserService;
+using Response = piedteam_net1_2_hocmienphi.service.UserService.Response;
 
 namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
 [ApiController]
@@ -25,17 +27,18 @@ public class CategoryController : ControllerBase
         query = query.Where(x => x.ParentId == null);
         query = query.OrderBy(x => x.Name);
         var selectedQuery = query
-            .Select(x => new Response.GetAllParentCategoryResponse()
+            .Select(x => new piedteam_net1_2_hocmienphi.service.CategoryService.Response.GetAllCategoryResponse()
             {
                 Id = x.Id,
                 Name = x.Name
             }).ToList();
-        // muc dich cua tao. GetAllParentCategoryResponse
+        /*
+         // muc dich cua tao. GetAllParentCategoryResponse
         // api nay chi can 2 field ID va Name thoi, nhung ma trong db
         // luc nao cung quang ra full ( id, name ) nhung api chi can 2 field 
         // quang ra ma kh sai thi phi lam
+         */
         var result = selectedQuery.ToList();
-        
         return Ok(result);
     }
 
@@ -57,7 +60,8 @@ public class CategoryController : ControllerBase
     [HttpPost("")]
     public IActionResult CreateCategory(Request.CreateCategoryRequest requestBody)
     {
-        // req no la body FE truyen cho minh, khi FE goi API nay
+        /*
+         // req no la body FE truyen cho minh, khi FE goi API nay
         // co nghia rang la, no muon tao. 1 record - 1 dong' duoi' db cua minh
         // 1 dong' duoi' db se co cac field: Id, Name, ParentId
         
@@ -65,7 +69,7 @@ public class CategoryController : ControllerBase
         // boi vi category table duoi' db, no dc tao. tu class category
         // the nen de add du lieu vao table Category thi minh phai new moi'
         // 1 object category thi moi add dc
-
+         */
         var newCategory = new Category()
         {
             Id = Guid.NewGuid(),
@@ -75,11 +79,11 @@ public class CategoryController : ControllerBase
         _dbContext.Categories.Add(newCategory);
         // chi moi add vao bo nho, chua add vao db
         _dbContext.SaveChanges();
-        
-        return Ok("create category");
+        return Ok();
     }
 
-    // [HttpDelete("{id}")]
+    /*
+     // [HttpDelete("{id}")]
     // public IActionResult DeleteCategory(int? id)
     // {
     //     return Ok("delete category");
@@ -91,6 +95,7 @@ public class CategoryController : ControllerBase
         // GetAllUser theo phan trang
         // Search, OrderBy
         // GetUserById
+     */
     
     [HttpDelete("{id}")]
     public  IActionResult DeleteCategoryById(Guid? id)
@@ -114,8 +119,6 @@ public class CategoryController : ControllerBase
         var category = query.FirstOrDefault();
         if (category != null)
         {
-            // _dbContext.Categories.Remove(category);
-            // _dbContext.SaveChanges();
             category.Name = requestBody.CategoryName; // ném giá trị mới vào 
             category.ParentId = requestBody.ParentId;
             

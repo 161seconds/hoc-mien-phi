@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using piedteam_net1_2_hocmienphi.repository.Entity;
 namespace piedteam_net1_2_hocmienphi.repository;
 
 public class AppDbContext : DbContext
 {
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) 
+    {}
     public DbSet<User> Users { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Mentor> Mentors { get; set; }
@@ -13,9 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<MentorFreeTime> MentorFreeTimes { get; set; }
     public DbSet<ApplyRequestCategory> ApplyRequestCategories { get; set; }
-    public AppDbContext(DbContextOptions<AppDbContext> options) 
-        : base(options) { }
-
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>(builder =>
@@ -56,28 +55,6 @@ public class AppDbContext : DbContext
                 .WithOne(b => b.User)
                 .HasForeignKey(b => b.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
-            
-            List<User> list = new List<User>()
-            {
-                
-            };
-            for (int i = 0; i <= 1000; i++)
-            {   
-                var newUser = new User()
-                {
-                    Id = Guid.NewGuid(),
-                    FirstName = "John" + i,
-                    LastName = "Doe" + i,
-                    Email = "johndoe@gmail.com" + i,
-                    Password = "123456",
-                    Age = "18",
-                    Role = "User",
-                    IsDeleted = false
-                };
-                list.Add(newUser);
-
-            }
-            builder.HasData(list);
         });
         
         modelBuilder.Entity<Mentor>(builder =>
@@ -125,7 +102,8 @@ public class AppDbContext : DbContext
         });
     }
 }
-// với 1 user thì có nhiều meeting, với khóa ngoại là userId
+/*
+ // với 1 user thì có nhiều meeting, với khóa ngoại là userId
             
 // khi mà mình chỉ định việc khai báo các mqh ở đây
 // thì các mqh sẽ kh bao g bị tạo thiếu
@@ -156,3 +134,4 @@ public class AppDbContext : DbContext
 // di vao' dbContext khai bao
 // chay. migration de tao file migration(cac phien ban cua db)
 // upd db
+ */

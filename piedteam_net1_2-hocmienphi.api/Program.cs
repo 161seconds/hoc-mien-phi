@@ -17,7 +17,6 @@ builder.Services.AddDbContext<AppDbContext>(
 
 var app = builder.Build();
 
-// Configure pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -32,7 +31,8 @@ app.MapControllers();
 
 app.Run();
 
-//kien truc 3 layer
+/*
+ //kien truc 3 layer
 //tầng api
     // chiu trach nhhiem khai bao cac endpoint,
         //nhan va tra request, response
@@ -142,6 +142,7 @@ app.Run();
 
     //phuong phap 4w1h
 // what why when where how
+ */
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
