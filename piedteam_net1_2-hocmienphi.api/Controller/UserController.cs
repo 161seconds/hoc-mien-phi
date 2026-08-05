@@ -4,7 +4,7 @@ using piedteam_net1_2_hocmienphi.repository;
 using piedteam_net1_2_hocmienphi.repository.Entity;
 using piedteam_net1_2_hocmienphi.service.UserService;
 using piedteam_net1_2_hocmienphi.service.Utils.JWTService;
-using Request = piedteam_net1_2_hocmienphi.service.UserService.Request.Request;
+using Request = piedteam_net1_2_hocmienphi.service.UserService.Request;
 
 namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
 
@@ -14,12 +14,36 @@ namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
 public class UserController : ControllerBase
 {
     private readonly AppDbContext _dbContext;
+    /*
+     DI - Dependency Injection
+     nó là 1 từ khóa rất quan trọng trong lí thuyết, xuơng sống của .NET
+     cac thư viện deu su dung DI, kh biet DI thi kh code dc
+     lí thuyết sâu xa thì rất nhieu, nhưng sử dụng thì chỉ có vài dòng
+     ví dụ: 
+        private readonly AppDbContext _dbContext; (khai báo sử dụng)
+        public UserController(AppDbContext dbContext, IConfiguration configuration)
+        { (tiêm vào)
+            _dbContext = dbContext;
+            configuration.GetSection("JwtOptions").Bind(_jwtOptions);
+        }
+    giai thích DI bằng từng từ
+     */
     private readonly JwtOptions _jwtOptions = new();
-    
-    public UserController(AppDbContext dbContext, IConfiguration configuration)
+    private readonly IService _userService;
+
+    public UserController(AppDbContext dbContext, 
+        IConfiguration configuration,
+        IService userService)
     {
         _dbContext = dbContext;
+        _userService = userService;
         configuration.GetSection("JwtOptions").Bind(_jwtOptions);
+        // ki thuat Binding
+        // dung de lay du lieu tu trong app settings
+        
+        // hay lay nhung cai co ten la JwOptions
+        // -> tra ra 1 cuc json
+        // sau do binding, anh xa du lieu vao controller
     }
     
     /*
@@ -101,19 +125,114 @@ public class UserController : ControllerBase
     // body: dlieu đc truyền vào body, nên kh cần phải đặt tham số trong url
      */
     
+    [HttpGet("")]
+    public async Task<List<Response.GetUserResponse>> GetAllUsers(string? searchTerm, int pageIndex, int pageSize)
+    { 
+        /*
+        từ đó giờ, trong lập trình ở dự án hiện tại, mình chưa có đề cập gì đến
+        việc lập trình bat đồng bộ - điều này có nghĩa lí gì?
+        khi mà N requests gọi đến cùng 1 lúc thì nó xử lí như thế nào (chưa bàn tới)
+        đó giờ mình chỉ lập trình đồng bộ thôi (Synchronous) - có nghĩa
+        khi mà các request tới thì nó xu lí tuần tự
+        tự đặt ra các câu hoi như sau
+        - vậy thì lâp trình ất đồng bộ nghĩa là như thế nào
+        - lập trình bat đồng bộ có phaải thực hiện N request cùng 1 lúc kh
+        - thực hiện N request cùng 1 lúc, hình như thấy hoi giôống song song - parallel
+        - vậy thì bất đồng bộ khác parallel như the nao
+        
+        giải thích đồng bộ và bt đồng bộ khác nhau như thế nào bằng ví dụ pha cà phê
+        - đồng bộ: nhân vien nhận Order -> pha cf -> đưa khách -> rồi sau đó mới nhận khách tiếp theo
+        - điểm đặc biet: trong lúc pha cf có hành động là đợi máy xay cf xong. thì lúc này nếu có khách tơới nhận order
+        thawngf nhân viên bat dong bo sẽ nói rằng: m order gì, km may!!! t kh can biet, t phải đợi máy pha cf xay xong đã
+        rồi t moi tính tip
+        
+        - bất dong bo: linh hoạt hơn, những hành động nào cần phải chờ đợi như là (đợi máy xay cf xay xong) thi chủ đông
+        bỏ qua và nhận 1 hành động mới như là nhận Order mới. sau đó máy pha cf xay xong thì mình nhận kết quả
+        và pha ly nước cho khách cũ
+        
+        thông thường mình cứ nghĩ, bất đồng bộ là người nhân viên xử li 2 order cùng 1 lúc, nhưng kh phải, 
+        nó là 1 dạng làm việc thông minh
+        
+        giải thích bat dong bo và song song và ví dụ quản lí nhà hàng
+        nhà hàng piedteam chi nhánh C#. giar sử nhaf hang của anh có 2 nhan vien la (Binh va Nam). nha hàng phuc vụ 2 mảng 
+        la đồ ăn chay và đồ ăn mặn (cả 2 nhân viên deu lam dc hết)
+        
+        đối voi lai Parallel
+        -> phân công: Bình chỉ dc làm đồ chay, Nam chỉ làm do mặn
+        -> trường hợp ngon nhất: nhà hàng nhan dc các đơn hàng có khoi lượng cong viec của chay va man bang nhau
+            nhan vien phuc vu hết công suất.
+        -> trường hợp tệ nhất: ben đồ chay nổ 100 đơn, bên đồ mặn nổ 0 đơn. lúc này bên Bình thì lam viec xấp mặt,
+        bên Nam thì chill, Bình bảo Nam qua phụ làm, Nam kh phu luon. vi sep Tan đã chia từ đầu r
+        
+        đối với lại bat dong bo: 
+        -> cac ae làm việc hòa thuận voi nhau. ben chay nổ đơn nhieu hon, cả 2 ae góp công vao phụ
+        -> nếu khi nhà hàng quá tải, luc nay chỉ can tuyển thêm nhan vien ma thoi
+        
+        implement vao code
+        tương tu voi JS thi .NET cũng co lap trinh bat dong bo. ben JS mình có Promise thì 
+        bên .NET cũn có Task. Promise = Task
+        
+        .NET cung co Async va Await
+        -> Async thi danh gia method nay la 1 hanh dong bat dong bo
+        -> Await: hay để phuong thức nay dc thực thi cho den khi hoan tat, luc nay minh tranh thu di lam cai khac
+        khi ma minh await trong 1 cai ham thi minh phai khai bao cai ham do la async
+        khi ma minh đánh dau 1 ham la async thi có nghĩa rang la cai ham nay sẽ hứa trả cho minh 1 kq
+        hứa (promise = task). luc nay 1 cai ham async phai bat buoc tra ra task
+        quy tac dinh nghia task nhu the nao:
+        -> 1 cai ham thi dau ra (response) thong thuong co 2 gia tri:
+            - void                              -> Task 
+            - 1 list gi do ..., 1 kiểu gi do    -> Task<List<Student>> | Task<int> | Task<string>
+            
+        bat dong bo trong .NET thi có 2 cái ham dac biet nua la WhenAll và WhenAny
+        thi WhenAll de lam cgi
+        vi du: trong 1 cai logic no co 3 cai func deu la bat dong bo het
+            - func 1 thi 3s
+            - func 2 thi 2s
+            - func 3 thi 4s
+        doi voi logic binh thuong
+        await func1
+        await func2
+        await func3
+        -> tong thoi gian ham nay xu li se la 9s
+        doi voi lai khi minh sai WhenAll
+        -> no se lay 3 ket qua cung 1 luc dua. tren func tra ra ket qua lau nhat (func4)
+        -> tong thoi gian se la 4s
+        -> nhung ma neu co 1 task bi loi thi tat ca se dung lai luon
+        var result = await Task.WhenAll(func1, func2, func3);
+        
+        doi voi lai khi minh sai WhenAny
+        -> no se lay 1 ket qua tra ra ket qua nhanh nhat (func2)
+        -> tong thoi gian se la 2s
+        -> nhung ma neu co 1 task bi loi thi ham van se tiep tuc chay, dam bao thang nao tra ra nhanh nhat va kh bi loi
+        var result = await Task.WhenAny(func1, func2, func3);
+        
+        vay thi cau hoi dat ra la. vay minh sai WhenAny di. tai no la nhanh nhat ma
+        
+        sai cach bth, khi nhung ketqua cua cac ham phu thuoc len nhau
+            + vi du luong tao tai khoan
+                -> truy van xuong db xem user co ton tai kh
+                -> tao account va luu xuong db
+                -> neu tao account thanh cong thi gui mail chuc mung
+                 
+        sai whenAll khi ketqua cua tung ham kh phu thuoc len nhau
+            + vi du luong la tao mentor, FE dua cho minh 2 thu la UserId va CategoryId
+                -> minh phai verify UserId va CategoryId co ton tai hay kh, neu kh ton tai thi bi loi ForeignKey
+                -> thi o truong hop nay, 2 hanh dong kh phu thuoc lan nhau, nen sai whenAll la toi uu nhat
+                
+        sai whenAny khi minh muon kiem tra xem Service nao la nhanh nhat
+            + thong thuong se dc sai trong Load Balancer, trong 1 he thong lon se co nhieu services.
+            + 1 request se duoc call toi 3 services cung 1 luc, luon luon dam bao co se luon co 1 thang tra ra ketqua
+     */
+        var result = await _userService.GetAllUsers(searchTerm, pageIndex, pageSize);
+        return result;
+    }
+    
     // PUT: /api/user/{id}
     [HttpPut("{id}")]
-    public IActionResult UpdateUser(Guid id, Request.UpdateUserRequest request)
+    public async Task<string> UpdateUser(Guid id, Request.UpdateUserRequest request)
     {
-        var query = _dbContext.Users.FirstOrDefault(x => x.IsDeleted == false && x.Id.Equals(id));
-        if (query == null)
-        {
-            return NotFound();
-        }
-        query.FirstName = request.FirstName;
-        query.LastName = request.LastName;
-        _dbContext.SaveChanges();
-        return Ok($"Update user id: {id}");
+        var result = _userService.UpdateUserById(id, request);
+        return result + "";
     }
 
     /*
@@ -180,6 +299,11 @@ public class UserController : ControllerBase
             new Claim("Role", user.Role),
         };
         var token = JwtService.GenerateToken(claims, _jwtOptions);
+        
+        // phần này chỉ là phần cách mà server tạo ra 1 cai token
+        // nhưng ma chưa đủ
+        // chúng ta cần phai cấu hình cách ma server xử lí 1 cái token
+        // liệu rằng token này có thực sự là của mình hay kh
         return Ok(token);
     }
     
@@ -208,46 +332,11 @@ public class UserController : ControllerBase
         // GetUserById
      */
     
-    [HttpPost]
-    public IActionResult CreateNewUser(Request.CreateUserRequest request)
+    [HttpPost("register")]
+    public async Task<string> CreateNewUser(Request.CreateUserRequest request)
     {
-        var createUser = new User()
-        {
-            Id = Guid.NewGuid(),
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Age = request.Age,
-            Email = request.Email,
-            Password = request.Password,
-            Role = "User",
-            IsDeleted = false
-        };
-        _dbContext.Users.Add(createUser);
-        _dbContext.SaveChanges();
-        return Ok();
-    }
-
-    [HttpGet]
-    public IActionResult GetAllUser(string? searchTerm, int pageIndex = 1, int pageSize = 10)
-    {
-        var query = _dbContext.Users.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            query = query.Where(x => x.FirstName.Contains(searchTerm) || 
-                                     x.LastName.Contains(searchTerm) || 
-                                     x.Email.Contains(searchTerm));
-        }
-        var selectedUser = query            
-            .OrderBy(x => x.Id)
-            .Skip((pageIndex - 1) * pageSize)
-            .Take(pageSize)
-            .Select(x => new Response.GetUserResponse()
-            {
-                FirstName = x.FirstName,
-                LastName = x.LastName,
-                Email = x.Email,
-            }).ToList();
-        return Ok(selectedUser);
+        var result = await _userService.CreateNewUser(request);
+        return result;
     }
 
     [HttpGet("{id}")]

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
 
-namespace piedteam_net1_2_hocmienphi.service.MediaService;
+namespace piedteam_net1_2_hocmienphi.service.Utils.MediaService;
 
 public interface IService
 {

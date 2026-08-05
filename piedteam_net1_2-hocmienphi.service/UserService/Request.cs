@@ -1,4 +1,6 @@
-namespace piedteam_net1_2_hocmienphi.service.UserService.Request;
+using Microsoft.AspNetCore.Http;
+
+namespace piedteam_net1_2_hocmienphi.service.UserService;
 
 public class Request
 {
@@ -19,21 +21,16 @@ public class Request
         public string Name { get; set; }
     }
 
-    public class GetAllUsers
+    public class UpdateUserRequest : CreateUserRequest
     {
-        public Guid Id { get; set; }
+        public IFormFile? Avatar { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
     }
 
-    public class UpdateUserRequest
+    public class CreateCategoryRequest
     {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-    }
-
-    public class GetUserByIdResponse
-    {
-        public Guid Id { get; set; }
+        public string CategoryName { get; set; }
+        public Guid? ParentId { get; set; } 
     }
 }

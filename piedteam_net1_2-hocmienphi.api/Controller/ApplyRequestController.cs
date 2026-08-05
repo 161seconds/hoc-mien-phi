@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PiedTeam_NET1_2_hocmienphi.api.Extensions;
 using piedteam_net1_2_hocmienphi.repository;
 using piedteam_net1_2_hocmienphi.repository.Entity;
 using piedteam_net1_2_hocmienphi.repository.Enums;
@@ -89,6 +91,8 @@ public class ApplyRequestController : ControllerBase
         return Ok();
     }
     
+    [Authorize(Policy = JwtExtensions.AdminPolicy)] // [] dc goi la annotations
+    // tôi sẽ apply authorization theo policy (nguyen tac, tieu chuan)
     [HttpGet("")]
     public IActionResult GetAllApplyRequest(
         string? searchTerm = null, ApplyRequestStatus? status = null,
@@ -145,18 +149,35 @@ public class ApplyRequestController : ControllerBase
         return Ok(result);
     }
     
+    //lấy ra những đơn của tui
+    // khi mà đã authen với author rồi thì có nghĩa là gì ?
+        // bạn chính là user trong hệ thống của chúng tôi
+        // và bạn có quyền hạn truy cập các API mà chúng tôi cho phép
+        // vì hệ thống đã bt chúng ta là ai rồi, thế nên chúng ta có thể lược bỏ
+        // và kh cần truyền những field kh cần thiết
+        // vd: Guid UserId
+        // vậy thì hệ thống bt người dùng là ai, userId, email, firstname, lastname
+            // bằng cách nào? 
+        // hệ thống sẽ bt đc, tại ví chúng ta đã ghi những thông tin đó vào payload mà
+            // xem lại ở phần Login
+    [Authorize(Policy = JwtExtensions.MentorPolicy)]
     [HttpGet("me")]
     public IActionResult GetMyApplyRequest(
-        Guid UserId, 
         ApplyRequestStatus? status = null,
-        DateTimeOffset? fromDate = null,
-        DateTimeOffset? toDate = null,
-        List<Guid> CategoryIds = null
+        int pageIndex = 1,
+        int pageSize = 10
+        //htppContext đại diện cho cái req đc gọi tới (req co access token, origin, thong tin người gọi, 
+        // vd GetMyApplyReq thì mọi cái thông tin sẽ nằm trong httpcontext
         )
     {
+        var userIdString = HttpContext.User.Claims.FirstOrDefault(
+            x => x.Type.Equals("UserId")
+        )!.Value;
+        var userId = Guid.Parse(userIdString); 
+        
         var query = _dbContext.ApplyRequests
             .Where(x => x.IsDeleted == false);
-        query = query.Where(x => x.UserId == UserId);
+        query = query.Where(x => x.UserId == userId);
         /*
          // cateId: la nhung cateId ma FE muon tim kiem
         // toi muon tim nhung la don co Id la nhu nay
@@ -165,10 +186,6 @@ public class ApplyRequestController : ControllerBase
             // mentor1: 
             // mentor2: 
          */
-        if (CategoryIds != null && CategoryIds.Count > 0)
-        {
-            query = query.Where(x => CategoryIds.Contains(x.Id));
-        }
         if (status != null) query = query.Where(x => x.Status == status);
         var selectedQuery = 
             query.Select(x => 
@@ -229,16 +246,37 @@ public class ApplyRequestController : ControllerBase
         var result = selectedQuery.ToList().FirstOrDefault();
         return Ok(result);
     }
-    
+
     [HttpPost("{id}/review")]
     public IActionResult ReviewApplyRequest(Guid id, Request.ReviewApplyRequestRequest requestBody)
     {
-        var query = _dbContext.ApplyRequests.Where(x => x.IsDeleted == false);
+        /*
+         flow của review apply request
+         đầu tiên là lấy ra những cái applyReq chưa bị xóa
+         tiếp theo la mình sẽ cần join bảng thủ công giữa user và applyReqCategories
+         sau đó nếu id AR trùng với id can tim thì lụm
+           lấy cái AR đầu tiên tìm thấy
+           nếu null thì trả NotFound
+         tiếp theo thì đến bước xem cái AR dc approved hay la bi từ chối
+           nếu dc approve
+             thì set lai cái status thành Approve
+             và set role của user thành mentor
+               tạo 1 mentor mới
+               tiếp theo để lấy ra cái Category của mentor đó
+               thì phai lấy cái AR vừa duyệt xong đem qua map thành cái MentorCategory
+                 thì ta lấy dc id, mentorId, cateId
+            nếu kh dc approve
+              thi set lai cai status thanh Reject
+              và đưa ra cái lí do bị từ choi RejectReason
+        */
+        var query = _dbContext.ApplyRequests
+            .Where(x => x.IsDeleted == false);
         query = query.Include(x => x.User)
-                        .Include(x => x.ApplyRequestsCategories);
-        query = query.Where(x => x.Id == id);  
+            .Include(x => x.ApplyRequestsCategories);
+        query = query.Where(x => x.Id == id);
         var applyRequest = query.FirstOrDefault();
-        if (applyRequest == null){
+        if (applyRequest == null)
+        {
             return NotFound();
         }
 
@@ -246,37 +284,26 @@ public class ApplyRequestController : ControllerBase
         {
             applyRequest.Status = ApplyRequestStatus.Approved;
             applyRequest.User.Role = "Mentor";
-            /*
-             // a lua e, o trong select x.User 1 cai la ngon luon, tu join luon 
-                // tai sao o day api call 1 cai la null
-            // auto join no chi hoat dong khi minh select thoi
-            // con` o day neu ma muon .User thi minh phai su dung
-                // Include de join thu cong
-             */
-                var mentor = new Mentor()
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = applyRequest.UserId,
-                };
-                var mentorCategories = applyRequest.ApplyRequestsCategories
-                    .Select(x => new MentorCategory()
-                    {
-                        Id = Guid.NewGuid(),
-                        MentorId = mentor.Id,
-                        CategoryId = x.CategoryId
-                    });
-                _dbContext.Mentors.Add(mentor);
-                _dbContext.MentorCategories.AddRange(mentorCategories);
-                _dbContext.SaveChanges();
+            var mentor = new Mentor()
+            {
+                Id = Guid.NewGuid(),
+                UserId = applyRequest.UserId,
+            };
+            _dbContext.Mentors.Add(mentor);
+            var mentorCategories = applyRequest.ApplyRequestsCategories.Select(y => new MentorCategory()
+            {
+                Id = Guid.NewGuid(),
+                CategoryId = y.CategoryId,
+                MentorId = mentor.Id,
+            }).ToList();
+            _dbContext.MentorCategories.AddRange(mentorCategories);
         }
         else
         {
             applyRequest.Status = ApplyRequestStatus.Rejected;
             applyRequest.RejectReason = requestBody.Reason;
         }
-        _dbContext.ApplyRequests.Update(applyRequest);
         _dbContext.SaveChanges();
         return Ok();
     }
-    
 }

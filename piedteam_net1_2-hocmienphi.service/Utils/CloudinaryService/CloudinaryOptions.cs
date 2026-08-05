@@ -1,4 +1,4 @@
-namespace piedteam_net1_2_hocmienphi.service.CloudinaryService;
+namespace piedteam_net1_2_hocmienphi.service.Utils.CloudinaryService;
 
 public class CloudinaryOptions
 {

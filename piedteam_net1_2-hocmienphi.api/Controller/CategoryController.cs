@@ -3,6 +3,7 @@ using piedteam_net1_2_hocmienphi.repository;
 using piedteam_net1_2_hocmienphi.repository.Entity;
 using piedteam_net1_2_hocmienphi.service.CategoryService;
 using piedteam_net1_2_hocmienphi.service.UserService;
+using Request = piedteam_net1_2_hocmienphi.service.UserService.Request;
 using Response = piedteam_net1_2_hocmienphi.service.UserService.Response;
 
 namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
@@ -48,7 +49,7 @@ public class CategoryController : ControllerBase
         var query =  _dbContext.Categories.Where(x => x.IsDeleted == false);
         query = query.Where(x => x.ParentId != null && x.ParentId == parentId);
         var selectedQueryV2 = query
-            .Select(x => new piedteam_net1_2_hocmienphi.service.UserService.Request.Request.GetChildrenCategoryById()
+            .Select(x => new Request.GetChildrenCategoryById()
         {
             Id = x.Id.ToString(),
             Name = x.Name
@@ -112,7 +113,7 @@ public class CategoryController : ControllerBase
     }
     
     [HttpPut("{id}")] 
-    public IActionResult UpdateCategory(Guid? id, Request.UpdateCategoryRequest requestBody)
+    public IActionResult UpdateCategory(Guid? id, piedteam_net1_2_hocmienphi.service.CategoryService.Request.UpdateCategoryRequest requestBody)
     {
         var query =  _dbContext.Categories.Where(x => x.IsDeleted == false);
         query = query.Where(x => x.Id == id);

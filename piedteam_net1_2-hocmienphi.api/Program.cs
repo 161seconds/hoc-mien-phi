@@ -1,5 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using PiedTeam_NET1_2_hocmienphi.api.Extensions;
+using PiedTeam_NET1_2_hocmienphi.api.Middlewares;
 using piedteam_net1_2_hocmienphi.repository;
+using UserService = piedteam_net1_2_hocmienphi.service.UserService;
+using MailService = piedteam_net1_2_hocmienphi.service.Utils.Mail;
+using MediaService = piedteam_net1_2_hocmienphi.service.Utils.MediaService;
+using CloudinaryService = piedteam_net1_2_hocmienphi.service.Utils.CloudinaryService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,19 +21,31 @@ builder.Services.AddDbContext<AppDbContext>(
     )
 );
 
+builder.Services.AddJwtServices(builder.Configuration);
+builder.Services.AddSwaggerServices();
+builder.Services.AddScoped<UserService.IService, UserService.Service>();
+builder.Services.AddScoped<MailService.IService, MailService.Service>();
+builder.Services.AddScoped<MediaService.IService, CloudinaryService.Service>();
+// từ dòng này tro lên trên, khai báo những đồ chơi mà mình sài, kh cần qutam thứ tự
 var app = builder.Build();
+// từ dòng này tro xuống, apply những đồ chơi vào server, quan trọng thứ tự apply
+app.UseMiddleware<GlobalExceptionHandlerMiddlewares>();
+// để mọi req đều phải đi qua nó, có trường hợp nào quăng lỗi thì xử luon
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // app.UseSwagger();
+    // app.UseSwaggerUI();
+    app.UseSwaggerAPI();
 }
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+// phải đặt sau authen, author, vì phải xác thực phân quyền rồi mới cho vô controller
 
 app.Run();
 
@@ -143,8 +161,26 @@ app.Run();
     //phuong phap 4w1h
 // what why when where how
  */
+/*
+    thiet ke db, tao cac entities, dbcontext
+    khai bao cac ET + setup appDbContext
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+    dau tien di vao API viet luon cai Controller
+    sau khi khai bao xong controller roi
+        thi minh se khai bao cac req res
+        khai bao o service
+    sau do khai bao nhung ham can sai trong Service
+        khai bao interface -> sau do implement interface
+    co iservice roi -> tien hnah lap vo controller
+    nho khai bao IOC container trước khi sai di
+    done
+ */
+
+
+namespace PiedTeam_NET1_2_hocmienphi.api
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+    {
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
 }
