@@ -229,10 +229,10 @@ public class UserController : ControllerBase
     
     // PUT: /api/user/{id}
     [HttpPut("{id}")]
-    public async Task<string> UpdateUser(Guid id, Request.UpdateUserRequest request)
+    public async Task<string> UpdateUserById(Guid id, [FromForm] Request.UpdateUserRequest request)
     {
-        var result = _userService.UpdateUserById(id, request);
-        return result + "";
+        var result = await _userService.UpdateUserById(id, request);
+        return result;
     }
 
     /*

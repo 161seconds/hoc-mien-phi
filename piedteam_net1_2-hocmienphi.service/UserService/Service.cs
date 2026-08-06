@@ -13,11 +13,11 @@ public class Service : IService
     private readonly MailService.IService _mailService;
     private readonly MediaService.IService _mediaService;
     
-    public Service(AppDbContext dbContext,  MailService.IService mailService, MediaService.IService _mediaService)
+    public Service(AppDbContext dbContext, MailService.IService mailService, MediaService.IService mediaService)
     {
         _dbContext = dbContext;
         _mailService = mailService;
-        _mediaService = _mediaService;
+        _mediaService = mediaService;
     }
 
     public async Task<List<Response.GetUserResponse>> GetAllUsers(string? searchTerm, int pageIndex, int pageSize)
@@ -76,18 +76,18 @@ public class Service : IService
 
     public async Task<string> UpdateUserById(Guid id, Request.UpdateUserRequest request)
     {
-        var query = _dbContext.Users.Where(x => x.IsDeleted == false && x.Id.Equals(id));
-        query = query.Where(x => x.Id == id);
-        var user = query.FirstOrDefault();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.IsDeleted == false && x.Id == id);
         
-        if (user != null)
+        if (user == null)
         {
-            user.FirstName = request.FirstName;
-            user.LastName = request.LastName;
-            user.Email = request.Email;
-            user.Age = request.Age;
-            user.Password = request.Password;
+            return "User not found";
         }
+
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.Email = request.Email;
+        user.Age = request.Age;
+        user.Password = request.Password;
 
         if (request.Avatar != null)
         {

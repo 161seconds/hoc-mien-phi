@@ -2,7 +2,6 @@ namespace PiedTeam_NET1_2_hocmienphi.api.Middlewares;
 
 public class GlobalExceptionHandlerMiddlewares : IMiddleware
 {
-    private IMiddleware _middlewareImplementation;
     public async Task InvokeAsync(HttpContext context, RequestDelegate next) //next đại diện cho cách mình xử lí mdw
     {
         try

@@ -26,6 +26,7 @@ builder.Services.AddSwaggerServices();
 builder.Services.AddScoped<UserService.IService, UserService.Service>();
 builder.Services.AddScoped<MailService.IService, MailService.Service>();
 builder.Services.AddScoped<MediaService.IService, CloudinaryService.Service>();
+builder.Services.AddTransient<GlobalExceptionHandlerMiddlewares>();
 // từ dòng này tro lên trên, khai báo những đồ chơi mà mình sài, kh cần qutam thứ tự
 var app = builder.Build();
 // từ dòng này tro xuống, apply những đồ chơi vào server, quan trọng thứ tự apply
