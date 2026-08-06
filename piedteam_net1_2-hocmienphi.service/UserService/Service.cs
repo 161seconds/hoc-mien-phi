@@ -2,6 +2,9 @@ using MailKit;
 using Microsoft.EntityFrameworkCore;
 using piedteam_net1_2_hocmienphi.repository;
 using piedteam_net1_2_hocmienphi.repository.Entity;
+using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
+using piedteam_net1_2_hocmienphi.service.Utils.JWTService;
 using MailService = piedteam_net1_2_hocmienphi.service.Utils.Mail;
 using MediaService = piedteam_net1_2_hocmienphi.service.Utils.MediaService;
 
@@ -12,12 +15,14 @@ public class Service : IService
     private readonly AppDbContext _dbContext;
     private readonly MailService.IService _mailService;
     private readonly MediaService.IService _mediaService;
+    private readonly IConfiguration _configuration;
     
-    public Service(AppDbContext dbContext, MailService.IService mailService, MediaService.IService mediaService)
+    public Service(AppDbContext dbContext, MailService.IService mailService, MediaService.IService mediaService, IConfiguration configuration)
     {
         _dbContext = dbContext;
         _mailService = mailService;
         _mediaService = mediaService;
+        _configuration = configuration;
     }
 
     public async Task<List<Response.GetUserResponse>> GetAllUsers(string? searchTerm, int pageIndex, int pageSize)
@@ -98,5 +103,49 @@ public class Service : IService
         await _dbContext.SaveChangesAsync();
         
         return "updated"; 
+    }
+
+    public async Task<string?> Login(string email, string password)
+    {
+        var query = _dbContext.Users.Where(x => x.IsDeleted == false);
+        query = query.Where(x => x.Email == email);
+        var user = await query.FirstOrDefaultAsync();
+        if (user == null || user.Password != password)
+        {
+            return null;
+        }
+
+        var jwtOptions = new JwtOptions();
+        _configuration.GetSection("JwtOptions").Bind(jwtOptions);
+
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.FirstName + " " + user.LastName),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role),
+            new Claim("UserId", user.Id.ToString()),
+            new Claim("Role", user.Role),
+        };
+        var token = JwtService.GenerateToken(claims, jwtOptions);
+        
+        return token;
+    }
+
+    public async Task<User?> GetUserById(Guid id)
+    {
+        return await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == id);
+    }
+
+    public async Task<bool> DeleteUser(Guid id)
+    {
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == id);
+        if (user == null)
+        {
+            return false;
+        }
+        _dbContext.Users.Remove(user);
+        await _dbContext.SaveChangesAsync();
+        return true;
     }
 }

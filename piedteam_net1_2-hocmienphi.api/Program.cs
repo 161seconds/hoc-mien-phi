@@ -6,6 +6,9 @@ using UserService = piedteam_net1_2_hocmienphi.service.UserService;
 using MailService = piedteam_net1_2_hocmienphi.service.Utils.Mail;
 using MediaService = piedteam_net1_2_hocmienphi.service.Utils.MediaService;
 using CloudinaryService = piedteam_net1_2_hocmienphi.service.Utils.CloudinaryService;
+using ApplyRequestService = piedteam_net1_2_hocmienphi.service.ApplyRequestService;
+using CategoryService = piedteam_net1_2_hocmienphi.service.CategoryService;
+using MentorService = piedteam_net1_2_hocmienphi.service.MentorService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +27,9 @@ builder.Services.AddDbContext<AppDbContext>(
 builder.Services.AddJwtServices(builder.Configuration);
 builder.Services.AddSwaggerServices();
 builder.Services.AddScoped<UserService.IService, UserService.Service>();
+builder.Services.AddScoped<ApplyRequestService.IService, ApplyRequestService.Service>();
+builder.Services.AddScoped<CategoryService.IService, CategoryService.Service>();
+builder.Services.AddScoped<MentorService.IService, MentorService.Service>();
 builder.Services.AddScoped<MailService.IService, MailService.Service>();
 builder.Services.AddScoped<MediaService.IService, CloudinaryService.Service>();
 builder.Services.AddTransient<GlobalExceptionHandlerMiddlewares>();
