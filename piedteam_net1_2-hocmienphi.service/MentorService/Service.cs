@@ -21,7 +21,7 @@ public class Service : IService
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             query = query.Where(x =>
-                x.User.FirstName.Contains(searchTerm) ||
+                x.User!.FirstName.Contains(searchTerm) ||
                 x.User.LastName.Contains(searchTerm) ||
                 x.User.Email.Contains(searchTerm));
         }
@@ -31,7 +31,7 @@ public class Service : IService
             .Select(x => new Response.GetMentorResponse()
             {
                 Id = x.Id,
-                FirstName = x.User.FirstName,
+                FirstName = x.User!.FirstName,
                 LastName = x.User.LastName,
                 Email = x.User.Email,
                 OrganizationName = x.OrganizationName,
