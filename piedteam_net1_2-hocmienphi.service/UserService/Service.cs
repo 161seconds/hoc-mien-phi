@@ -110,9 +110,14 @@ public class Service : IService
         var query = _dbContext.Users.Where(x => x.IsDeleted == false);
         query = query.Where(x => x.Email == email);
         var user = await query.FirstOrDefaultAsync();
-        if (user == null || user.Password != password)
+        if (user == null)
         {
-            return null;
+            throw new KeyNotFoundException("User not found");
+        }
+
+        if (user.Password != password)
+        {
+            throw new UnauthorizedAccessException("Wrong password");
         }
 
         var jwtOptions = new JwtOptions();

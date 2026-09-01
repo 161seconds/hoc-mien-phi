@@ -13,6 +13,7 @@ public class User : BaseEntity<Guid>
     public string Email { get; set; }
     public string Password { get; set; }
     public string Role { get; set; }
+    public DateOnly SendDate { get; set; }
     public Mentor? Mentor { get; set; }
     
     public ICollection<ApplyRequest> ApplyRequests {get; set;}

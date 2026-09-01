@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using piedteam_net1_2_hocmienphi.repository;
 using piedteam_net1_2_hocmienphi.repository.Entity;
+using piedteam_net1_2_hocmienphi.service.Models;
 using piedteam_net1_2_hocmienphi.service.UserService;
 using piedteam_net1_2_hocmienphi.service.Utils.JWTService;
 using Request = piedteam_net1_2_hocmienphi.service.UserService.Request;
@@ -252,12 +253,15 @@ public class UserController : ControllerBase
                 // nếu mà kh trùng, thì m kh phải chủ nhân của tài khoản, cútttt
         // nếu mà kh có tồn tại email thì cút
          */
-        var token = await _userService.Login(Email, Password);
-        if (token == null)
-        {
-            return BadRequest();
-        }
-        return Ok(token);
+        // var token = await _userService.Login(Email, Password);
+        // if (token == null)
+        // {
+        //     return BadRequest();
+        // }
+        // return Ok(token);
+        var result =  await _userService.Login(Email, Password);
+        return Ok(ResponseBuilder.CreateSuccessResponse(result, "Login Successful", 
+            HttpContext.TraceIdentifier));
     }
     
     [HttpPost("ForgotPassword")]

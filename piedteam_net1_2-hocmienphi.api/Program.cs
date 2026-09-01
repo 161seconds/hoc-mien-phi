@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using PiedTeam_NET1_2_hocmienphi.api.Extensions;
 using PiedTeam_NET1_2_hocmienphi.api.Middlewares;
 using piedteam_net1_2_hocmienphi.repository;
+using piedteam_net1_2_hocmienphi.service.Utils.BackgroundJob;
+using Quartz;
+using Quartz.Util;
 using UserService = piedteam_net1_2_hocmienphi.service.UserService;
 using MailService = piedteam_net1_2_hocmienphi.service.Utils.Mail;
 using MediaService = piedteam_net1_2_hocmienphi.service.Utils.MediaService;
@@ -32,7 +35,32 @@ builder.Services.AddScoped<CategoryService.IService, CategoryService.Service>();
 builder.Services.AddScoped<MentorService.IService, MentorService.Service>();
 builder.Services.AddScoped<MailService.IService, MailService.Service>();
 builder.Services.AddScoped<MediaService.IService, CloudinaryService.Service>();
+
 builder.Services.AddTransient<GlobalExceptionHandlerMiddlewares>();
+
+builder.Services.AddQuartz(options =>
+{
+    var jobKey = new JobKey(nameof(SendAdvertisingJob));
+    var triggerName = jobKey + "-trigger";
+    options
+        .AddJob<SendAdvertisingJob>(jobKey)
+        .AddTrigger(trigger => trigger.ForJob(jobKey)
+            .WithIdentity(triggerName)
+            .WithCronSchedule("0 0 7 * * ?", cronBuilder => 
+                cronBuilder.InTimeZone(SendAdvertisingJob.TimeZoneUtils.GetVietNamTimeZone())
+                )
+        // 7g sáng theo giờ server
+        // giây | phút |  giờ |  tháng |  ngày trong tuần
+        // value: số, *, ?
+        // * có nghĩa là lặp lại mọi ngày, mọi tháng
+        );
+});
+
+builder.Services.AddQuartzHostedService(opts =>
+{
+    opts.WaitForJobsToComplete = true;
+    // chạy xong job thì mới dc shutdown
+});
 // từ dòng này tro lên trên, khai báo những đồ chơi mà mình sài, kh cần qutam thứ tự
 var app = builder.Build();
 // từ dòng này tro xuống, apply những đồ chơi vào server, quan trọng thứ tự apply
