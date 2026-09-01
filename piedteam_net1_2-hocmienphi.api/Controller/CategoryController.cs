@@ -3,8 +3,8 @@ using piedteam_net1_2_hocmienphi.repository;
 using piedteam_net1_2_hocmienphi.repository.Entity;
 using piedteam_net1_2_hocmienphi.service.CategoryService;
 using piedteam_net1_2_hocmienphi.service.UserService;
-using Request = piedteam_net1_2_hocmienphi.service.UserService.Request;
-using Response = piedteam_net1_2_hocmienphi.service.UserService.Response;
+using IService = piedteam_net1_2_hocmienphi.service.CategoryService.IService;
+using Request = piedteam_net1_2_hocmienphi.service.CategoryService.Request;
 
 namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
 [ApiController]
@@ -12,74 +12,31 @@ namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
 
 public class CategoryController : ControllerBase
 {
-    // dependency injection: core, kh biet = rot phong van
-    // danh' 1 buoi de noi ve cai nay
-    private readonly AppDbContext _dbContext;
+    private readonly IService _categoryService;
         
-    public CategoryController(AppDbContext dbContext)
+    public CategoryController(IService categoryService)
     {
-        _dbContext = dbContext;
+        _categoryService = categoryService;
     }
     
     [HttpGet("")]
-    public IActionResult GetAllCategories()
+    public async Task<IActionResult> GetAllCategories()
     {
-        var query = _dbContext.Categories.Where(x => x.IsDeleted == false);
-        query = query.Where(x => x.ParentId == null);
-        query = query.OrderBy(x => x.Name);
-        var selectedQuery = query
-            .Select(x => new piedteam_net1_2_hocmienphi.service.CategoryService.Response.GetAllCategoryResponse()
-            {
-                Id = x.Id,
-                Name = x.Name
-            }).ToList();
-        /*
-         // muc dich cua tao. GetAllParentCategoryResponse
-        // api nay chi can 2 field ID va Name thoi, nhung ma trong db
-        // luc nao cung quang ra full ( id, name ) nhung api chi can 2 field 
-        // quang ra ma kh sai thi phi lam
-         */
-        var result = selectedQuery.ToList();
+        var result = await _categoryService.GetAllCategories();
         return Ok(result);
     }
 
     [HttpGet("{parentId}")] // dung id nay la id cua Parent
-    public IActionResult GetChildrenCategoryById(Guid parentId)
+    public async Task<IActionResult> GetChildrenCategoryById(Guid parentId)
     {
-        var query =  _dbContext.Categories.Where(x => x.IsDeleted == false);
-        query = query.Where(x => x.ParentId != null && x.ParentId == parentId);
-        var selectedQueryV2 = query
-            .Select(x => new Request.GetChildrenCategoryById()
-        {
-            Id = x.Id.ToString(),
-            Name = x.Name
-        }).ToList();
-        var resultV2 = selectedQueryV2.ToList();
-        return Ok(resultV2);
+        var result = await _categoryService.GetChildrenCategoryById(parentId);
+        return Ok(result);
     }
 
     [HttpPost("")]
-    public IActionResult CreateCategory(Request.CreateCategoryRequest requestBody)
+    public async Task<IActionResult> CreateCategory(Request.CreateCategoryRequest requestBody)
     {
-        /*
-         // req no la body FE truyen cho minh, khi FE goi API nay
-        // co nghia rang la, no muon tao. 1 record - 1 dong' duoi' db cua minh
-        // 1 dong' duoi' db se co cac field: Id, Name, ParentId
-        
-        // luc nay BE phai tao ra 1 object tu class Category va' insert vao db
-        // boi vi category table duoi' db, no dc tao. tu class category
-        // the nen de add du lieu vao table Category thi minh phai new moi'
-        // 1 object category thi moi add dc
-         */
-        var newCategory = new Category()
-        {
-            Id = Guid.NewGuid(),
-            Name = requestBody.CategoryName,
-            ParentId = requestBody.ParentId
-        };
-        _dbContext.Categories.Add(newCategory);
-        // chi moi add vao bo nho, chua add vao db
-        _dbContext.SaveChanges();
+        await _categoryService.CreateCategory(requestBody);
         return Ok();
     }
 
@@ -99,34 +56,25 @@ public class CategoryController : ControllerBase
      */
     
     [HttpDelete("{id}")]
-    public  IActionResult DeleteCategoryById(Guid? id)
+    public async Task<IActionResult> DeleteCategoryById(Guid id)
     {
-        var query =  _dbContext.Categories.Where(x => x.IsDeleted == false);
-        query = query.Where(x => x.Id == id);
-        var category = query.FirstOrDefault();
-        if (category != null)
+        var result = await _categoryService.DeleteCategoryById(id);
+        if (result)
         {
-            _dbContext.Categories.Remove(category);
-            _dbContext.SaveChanges();
+            return Ok();
         }
-        return Ok();
+        return NotFound();
     }
     
     [HttpPut("{id}")] 
-    public IActionResult UpdateCategory(Guid? id, piedteam_net1_2_hocmienphi.service.CategoryService.Request.UpdateCategoryRequest requestBody)
+    public async Task<IActionResult> UpdateCategory(Guid id, Request.UpdateCategoryRequest requestBody)
     {
-        var query =  _dbContext.Categories.Where(x => x.IsDeleted == false);
-        query = query.Where(x => x.Id == id);
-        var category = query.FirstOrDefault();
-        if (category != null)
+        var result = await _categoryService.UpdateCategory(id, requestBody);
+        if (result)
         {
-            category.Name = requestBody.CategoryName; // ném giá trị mới vào 
-            category.ParentId = requestBody.ParentId;
-            
-            _dbContext.Categories.Update(category);
-            _dbContext.SaveChanges();
+            return Ok("update category");
         }
-        return Ok("update category");
+        return NotFound();
     }
 }
 

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using piedteam_net1_2_hocmienphi.repository;
 using piedteam_net1_2_hocmienphi.repository.Entity;
+using piedteam_net1_2_hocmienphi.service.Models;
 using piedteam_net1_2_hocmienphi.service.UserService;
 using piedteam_net1_2_hocmienphi.service.Utils.JWTService;
 using Request = piedteam_net1_2_hocmienphi.service.UserService.Request;
@@ -13,37 +14,11 @@ namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
 //note | annotation
 public class UserController : ControllerBase
 {
-    private readonly AppDbContext _dbContext;
-    /*
-     DI - Dependency Injection
-     nó là 1 từ khóa rất quan trọng trong lí thuyết, xuơng sống của .NET
-     cac thư viện deu su dung DI, kh biet DI thi kh code dc
-     lí thuyết sâu xa thì rất nhieu, nhưng sử dụng thì chỉ có vài dòng
-     ví dụ: 
-        private readonly AppDbContext _dbContext; (khai báo sử dụng)
-        public UserController(AppDbContext dbContext, IConfiguration configuration)
-        { (tiêm vào)
-            _dbContext = dbContext;
-            configuration.GetSection("JwtOptions").Bind(_jwtOptions);
-        }
-    giai thích DI bằng từng từ
-     */
-    private readonly JwtOptions _jwtOptions = new();
     private readonly IService _userService;
 
-    public UserController(AppDbContext dbContext, 
-        IConfiguration configuration,
-        IService userService)
+    public UserController(IService userService)
     {
-        _dbContext = dbContext;
         _userService = userService;
-        configuration.GetSection("JwtOptions").Bind(_jwtOptions);
-        // ki thuat Binding
-        // dung de lay du lieu tu trong app settings
-        
-        // hay lay nhung cai co ten la JwOptions
-        // -> tra ra 1 cuc json
-        // sau do binding, anh xa du lieu vao controller
     }
     
     /*
@@ -246,7 +221,7 @@ public class UserController : ControllerBase
 
     // POST: /api/user/login
     [HttpPost("login")]
-    public IActionResult Login(string Email, string Password)
+    public async Task<IActionResult> Login(string Email, string Password)
     {
         /*
         // lấy tất cả User trong db
@@ -278,33 +253,15 @@ public class UserController : ControllerBase
                 // nếu mà kh trùng, thì m kh phải chủ nhân của tài khoản, cútttt
         // nếu mà kh có tồn tại email thì cút
          */
-        var query = _dbContext.Users.Where(x => x.IsDeleted == false);
-        query = query.Where(x => x.Email == Email);
-        var user = query.FirstOrDefault();
-        if (user == null || user.Password != Password)
-        {
-            return BadRequest();
-        }
-        var testValue = _jwtOptions.SecretKey;
-        // claims đại diện cho các thông tin nằm trong payload của jwt
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.FirstName + " " + user.LastName),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role),
-            // quan trọng nhất: claim này sẽ giúp mình new Claim(ClaimTypes.Role, user.Role)
-            // sẽ giúp mình phân quyền
-            new Claim("UserId", user.Id.ToString()),
-            new Claim("Role", user.Role),
-        };
-        var token = JwtService.GenerateToken(claims, _jwtOptions);
-        
-        // phần này chỉ là phần cách mà server tạo ra 1 cai token
-        // nhưng ma chưa đủ
-        // chúng ta cần phai cấu hình cách ma server xử lí 1 cái token
-        // liệu rằng token này có thực sự là của mình hay kh
-        return Ok(token);
+        // var token = await _userService.Login(Email, Password);
+        // if (token == null)
+        // {
+        //     return BadRequest();
+        // }
+        // return Ok(token);
+        var result =  await _userService.Login(Email, Password);
+        return Ok(ResponseBuilder.CreateSuccessResponse(result, "Login Successful", 
+            HttpContext.TraceIdentifier));
     }
     
     [HttpPost("ForgotPassword")]
@@ -340,25 +297,24 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public IActionResult GetUserById(Guid id)
+    public async Task<IActionResult> GetUserById(Guid id)
     {
-        var query = _dbContext.Users.FirstOrDefault(x => x.Id == id);
-        if (query == null)
+        var user = await _userService.GetUserById(id);
+        if (user == null)
         {
             return NotFound();
         }
-        return Ok(query);
+        return Ok(user);
     }
     
     [HttpDelete("{id}")]
-    public IActionResult DeleteUser(Guid id)
+    public async Task<IActionResult> DeleteUser(Guid id)
     {
-        var query = _dbContext.Users.FirstOrDefault(x => x.Id == id);
-        if (query == null)
+        var isDeleted = await _userService.DeleteUser(id);
+        if (!isDeleted)
         {
             return NotFound();
         }
-        _dbContext.Users.Remove(query);
         return Ok($"Delete user id: {id}");
     }
 }

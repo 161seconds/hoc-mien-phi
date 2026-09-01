@@ -1,3 +1,6 @@
+using System.Net;
+using piedteam_net1_2_hocmienphi.service.Models;
+
 namespace PiedTeam_NET1_2_hocmienphi.api.Middlewares;
 
 public class GlobalExceptionHandlerMiddlewares : IMiddleware
@@ -22,7 +25,46 @@ public class GlobalExceptionHandlerMiddlewares : IMiddleware
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            var StatusCode = MapStatusCode(e);
+            var errorMessage = GetErrorMessage(e, StatusCode);
+            // HttpContext context. Context nay` dai. dien cho request va response
+            // neu muon do^. lai status cua response thi tuong tac voi Context
+            context.Response.StatusCode = StatusCode;
+            context.Response.ContentType = "application/json";
+
+            var response = ResponseBuilder.CreateErrorResponse(null, context.TraceIdentifier);
+            await context.Response.WriteAsJsonAsync(response);
         }
     }
+
+    private static int MapStatusCode(Exception ex)
+    {
+        return ex switch
+        {
+            ArgumentException => StatusCodes.Status400BadRequest,
+            UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
+            KeyNotFoundException => StatusCodes.Status404NotFound,
+            _ => StatusCodes.Status500InternalServerError
+        };
+    }
+    
+    private static string GetErrorMessage(Exception ex, int statusCode)
+    {
+        return statusCode >= 500 ? "Unexpected error occured" : ex.Message; 
+    }
+    
+    private static object? BuildErrorDetail(Exception ex)
+    {
+        return new
+        {
+            detail = ex.Message,
+            exceptionType = ex.GetType().FullName,
+            innerDetail = ex.InnerException?.Message ?? ex.Message,
+            rootCauseDetail = ex.GetBaseException().Message
+        };
+    }
 }
+// co duoc exception, thi minh can 2 thu' de tra ra
+    // code: 400 422 500
+    // message cua Exception
+    

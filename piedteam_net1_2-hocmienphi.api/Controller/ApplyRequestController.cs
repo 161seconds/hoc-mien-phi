@@ -12,11 +12,11 @@ namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
 [Route("api/[controller]")]
 public class ApplyRequestController : ControllerBase
 {
-    private readonly AppDbContext _dbContext;
+    private readonly IService _applyRequestService;
         
-    public ApplyRequestController(AppDbContext dbContext)
+    public ApplyRequestController(IService applyRequestService)
     {
-        _dbContext = dbContext;
+        _applyRequestService = applyRequestService;
     }
     
     /*
@@ -65,87 +65,20 @@ public class ApplyRequestController : ControllerBase
          */
     
     [HttpPost("")]
-    public IActionResult CreateApplyRequest(Request.CreateApplyRequestRequest requestBody)
+    public async Task<IActionResult> CreateApplyRequest(Request.CreateApplyRequestRequest requestBody)
     {
-        var request = new ApplyRequest()
-        {
-            Id = Guid.NewGuid(),
-            UserId = requestBody.UserId,
-            Description = requestBody.Description,
-            CvLink =  requestBody.CvLink,
-            Status = ApplyRequestStatus.Pending
-        };
-        _dbContext.ApplyRequests.Add(request);
-        _dbContext.SaveChanges();
-        var applyRequestCategory = requestBody.CategoryIds
-            .Select(x => new ApplyRequestCategory()
-        {
-            Id = Guid.NewGuid(),
-            ApplyRequestId = request.Id,
-            CategoryId = x
-        });
-        // sau khi anh xa. thi
-        // add range là add nhìu dòng cùng lúc
-        _dbContext.ApplyRequestCategories.AddRange(applyRequestCategory);
-        _dbContext.SaveChanges();
+        await _applyRequestService.CreateApplyRequest(requestBody);
         return Ok();
     }
     
     [Authorize(Policy = JwtExtensions.AdminPolicy)] // [] dc goi la annotations
     // tôi sẽ apply authorization theo policy (nguyen tac, tieu chuan)
     [HttpGet("")]
-    public IActionResult GetAllApplyRequest(
+    public async Task<IActionResult> GetAllApplyRequest(
         string? searchTerm = null, ApplyRequestStatus? status = null,
         int PageIndex = 1, int PageSize = 10)
     {
-        var query = _dbContext.ApplyRequests
-            .Where(x => x.IsDeleted == false);
-        if(!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            query = query.Where(x => x.Description.Contains(searchTerm) 
-                                     || x.User.FirstName.Contains(searchTerm)
-                                     || x.User.LastName.Contains(searchTerm));
-            /*
-             // do gio chung ta chi tim kiem dieu kien o table hien tai thoi
-            // dong' 96
-            // con 2 thang sau thi no upd len 1 ti
-            // dong' 97 98
-            // luc nay thi no join voi table User de tim kiem
-             */
-        }
-        if (status != null)
-        {
-            query = query.Where(x => x.Status == status);
-        }
-
-        var selectedQuery = 
-            query.Select(x => 
-            new Response.GetApplyRequestResponse()
-            {
-                Id = x.Id,
-                Description = x.Description,
-                CvLink = x.CvLink,
-                Status = x.Status,
-                RejectReason =  x.RejectReason,
-                User = new piedteam_net1_2_hocmienphi.service.UserService.Response.GetUserResponse()
-                {
-                    FirstName = x.User.FirstName,
-                    LastName = x.User.LastName,
-                    Age = x.User.Age,
-                    Email = x.User.Email,
-                },
-                Categories = x.ApplyRequestsCategories
-                    .Select(y => new piedteam_net1_2_hocmienphi
-                    .service.CategoryService.Response.GetAllCategoryResponse()
-                {
-                    Id = y.Category.Id,
-                    Name = y.Category.Name,
-                }).ToList()
-            });
-        selectedQuery = selectedQuery
-            .Skip((PageIndex - 1) * PageSize)
-            .Take(PageSize);
-        var result = selectedQuery.ToList();
+        var result = await _applyRequestService.GetAllApplyRequest(searchTerm, status, PageIndex, PageSize);
         return Ok(result);
     }
     
@@ -162,7 +95,7 @@ public class ApplyRequestController : ControllerBase
             // xem lại ở phần Login
     [Authorize(Policy = JwtExtensions.MentorPolicy)]
     [HttpGet("me")]
-    public IActionResult GetMyApplyRequest(
+    public async Task<IActionResult> GetMyApplyRequest(
         ApplyRequestStatus? status = null,
         int pageIndex = 1,
         int pageSize = 10
@@ -175,80 +108,20 @@ public class ApplyRequestController : ControllerBase
         )!.Value;
         var userId = Guid.Parse(userIdString); 
         
-        var query = _dbContext.ApplyRequests
-            .Where(x => x.IsDeleted == false);
-        query = query.Where(x => x.UserId == userId);
-        /*
-         // cateId: la nhung cateId ma FE muon tim kiem
-        // toi muon tim nhung la don co Id la nhu nay
-        // .any func
-        // vd: toi muon lay nhung la don co category la "kinh te"
-            // mentor1: 
-            // mentor2: 
-         */
-        if (status != null) query = query.Where(x => x.Status == status);
-        var selectedQuery = 
-            query.Select(x => 
-                new Response.GetApplyRequestResponse()
-                {
-                    Id = x.Id,
-                    Description = x.Description,
-                    CvLink = x.CvLink,
-                    Status = x.Status,
-                    RejectReason =  x.RejectReason,
-                    User = new piedteam_net1_2_hocmienphi.service.UserService.Response.GetUserResponse()
-                    {
-                        FirstName = x.User.FirstName,
-                        LastName = x.User.LastName,
-                        Age = x.User.Age,
-                        Email = x.User.Email,
-                    },
-                    Categories = x.ApplyRequestsCategories.Select(y => new piedteam_net1_2_hocmienphi
-                        .service.CategoryService.Response.GetAllCategoryResponse()
-                        {
-                            Id = y.Category.Id,
-                            Name = y.Category.Name, 
-                        }).ToList()
-                });
-        var result = selectedQuery.ToList();
+        var result = await _applyRequestService.GetMyApplyRequest(userId, status, pageIndex, pageSize);
         return Ok(result);
     }
     
     [HttpGet("{id}")] 
-    public IActionResult GetApplyRequestDetail(
+    public async Task<IActionResult> GetApplyRequestDetail(
         Guid ApplyRequestId)
     {
-        var query = _dbContext.ApplyRequests
-            .Where(x => x.IsDeleted == false);
-        var selectedQuery = 
-            query.Select(x => 
-                new Response.GetApplyRequestResponse()
-                {
-                    Id = x.Id,
-                    Description = x.Description,
-                    CvLink = x.CvLink,
-                    Status = x.Status,
-                    RejectReason =  x.RejectReason,
-                    User = new piedteam_net1_2_hocmienphi.service.UserService.Response.GetUserResponse()
-                    {
-                        FirstName = x.User.FirstName,
-                        LastName = x.User.LastName,
-                        Age = x.User.Age,
-                        Email = x.User.Email,
-                    },
-                    Categories = x.ApplyRequestsCategories.Select(y => new piedteam_net1_2_hocmienphi
-                        .service.CategoryService.Response.GetAllCategoryResponse()
-                        {
-                            Id = y.Category.Id,
-                            Name = y.Category.Name,
-                        }).ToList() 
-                });
-        var result = selectedQuery.ToList().FirstOrDefault();
+        var result = await _applyRequestService.GetApplyRequestDetail(ApplyRequestId);
         return Ok(result);
     }
 
     [HttpPost("{id}/review")]
-    public IActionResult ReviewApplyRequest(Guid id, Request.ReviewApplyRequestRequest requestBody)
+    public async Task<IActionResult> ReviewApplyRequest(Guid id, Request.ReviewApplyRequestRequest requestBody)
     {
         /*
          flow của review apply request
@@ -269,41 +142,11 @@ public class ApplyRequestController : ControllerBase
               thi set lai cai status thanh Reject
               và đưa ra cái lí do bị từ choi RejectReason
         */
-        var query = _dbContext.ApplyRequests
-            .Where(x => x.IsDeleted == false);
-        query = query.Include(x => x.User)
-            .Include(x => x.ApplyRequestsCategories);
-        query = query.Where(x => x.Id == id);
-        var applyRequest = query.FirstOrDefault();
-        if (applyRequest == null)
+        var success = await _applyRequestService.ReviewApplyRequest(id, requestBody);
+        if (!success)
         {
             return NotFound();
         }
-
-        if (requestBody.IsApproved)
-        {
-            applyRequest.Status = ApplyRequestStatus.Approved;
-            applyRequest.User.Role = "Mentor";
-            var mentor = new Mentor()
-            {
-                Id = Guid.NewGuid(),
-                UserId = applyRequest.UserId,
-            };
-            _dbContext.Mentors.Add(mentor);
-            var mentorCategories = applyRequest.ApplyRequestsCategories.Select(y => new MentorCategory()
-            {
-                Id = Guid.NewGuid(),
-                CategoryId = y.CategoryId,
-                MentorId = mentor.Id,
-            }).ToList();
-            _dbContext.MentorCategories.AddRange(mentorCategories);
-        }
-        else
-        {
-            applyRequest.Status = ApplyRequestStatus.Rejected;
-            applyRequest.RejectReason = requestBody.Reason;
-        }
-        _dbContext.SaveChanges();
         return Ok();
     }
 }

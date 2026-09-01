@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using piedteam_net1_2_hocmienphi.repository;
-using Response = piedteam_net1_2_hocmienphi.service.MentorService.Response;
-using CategoryResponse = piedteam_net1_2_hocmienphi.service.CategoryService.Response;
+using piedteam_net1_2_hocmienphi.service.MentorService;
 
 namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
 
@@ -9,55 +7,20 @@ namespace PiedTeam_NET1_2_hocmienphi.api.Controller;
 [Route("api/[controller]")]
 public class MentorController : ControllerBase
 {
-    private readonly AppDbContext _dbContext;
+    private readonly IService _mentorService;
 
-    public MentorController(AppDbContext dbContext)
+    public MentorController(IService mentorService)
     {
-        _dbContext = dbContext;
+        _mentorService = mentorService;
     }
 
     [HttpGet("")]
-    public IActionResult GetAllMentor(
+    public async Task<IActionResult> GetAllMentor(
         string? searchTerm = null,
         int pageIndex = 1,
         int pageSize = 10)
     {
-        var query = _dbContext.Mentors
-            .Where(x => x.IsDeleted == false);
-
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            query = query.Where(x =>
-                x.User.FirstName.Contains(searchTerm) ||
-                x.User.LastName.Contains(searchTerm) ||
-                x.User.Email.Contains(searchTerm));
-        }
-
-        var selectedQuery = query
-            .OrderBy(x => x.Id)
-            .Select(x => new Response.GetMentorResponse()
-            {
-                Id = x.Id,
-                FirstName = x.User.FirstName,
-                LastName = x.User.LastName,
-                Email = x.User.Email,
-                OrganizationName = x.OrganizationName,
-                CurrentPosition = x.CurrentPosition,
-
-                Categories = x.MentorCategories
-                    .Select(mc => new CategoryResponse.GetAllCategoryResponse()
-                    {
-                        Id = mc.Category.Id,
-                        Name = mc.Category.Name
-                    })
-                    .ToList()
-            });
-
-        var result = selectedQuery
-            .Skip((pageIndex - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
-
+        var result = await _mentorService.GetAllMentor(searchTerm, pageIndex, pageSize);
         return Ok(result);
     }
 }
